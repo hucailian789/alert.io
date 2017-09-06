@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <style type="text/css">
+    * {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      border: 0;
+    }
+    
+    .all {
+      width: 500px;
+      height: 200px;
+      padding: 7px;
+      border: 1px solid #ccc;
+      margin: 100px auto;
+      position: relative;
+    }
+    
+    .screen {
+      width: 500px;
+      height: 200px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .screen li {
+      width: 500px;
+      height: 200px;
+      overflow: hidden;
+      float: left;
+    }
+    
+    .screen ul {
+      position: absolute;
+      left: 0;
+      top: 0px;
+      width: 3000px;
+    }
+    
+    .all ol {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      line-height: 20px;
+      text-align: center;
+    }
+    
+    .all ol li {
+      float: left;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    
+    .all ol li.current {
+      background: yellow;
+    }
+    
+    #arr {
+      display: none;
+    }
+    
+    #arr span {
+      width: 40px;
+      height: 40px;
+      position: absolute;
+      left: 5px;
+      top: 50%;
+      margin-top: -20px;
+      background: #000;
+      cursor: pointer;
+      line-height: 40px;
+      text-align: center;
+      font-weight: bold;
+      font-family: '黑体';
+      font-size: 30px;
+      color: #fff;
+      opacity: 0.3;
+      border: 1px solid #fff;
+    }
+    
+    #arr #right {
+      right: 5px;
+      left: auto;
+    }
+  </style>
+</head>
+<body>
+<div class="all" id='box'>
+  <div class="screen">
+    <ul>
+      <li><img src="images/1.jpg" width="500" height="200"/></li>
+      <li><img src="images/2.jpg" width="500" height="200"/></li>
+      <li><img src="images/3.jpg" width="500" height="200"/></li>
+      <li><img src="images/4.jpg" width="500" height="200"/></li>
+      <li><img src="images/5.jpg" width="500" height="200"/></li>
+    </ul>
+    <ol>
+      <!-- 动态创建的小方块，添加在这里，样式已经给写好了-->
+    </ol>
+  </div>
+  <div id="arr">
+    <span id="left">&lt;</span>
+    <span id="right">&gt;</span>
+  </div>
+</div>
+
+<script src="../animate.js"></script>
+<script>
+  //1.获取元素
+  var box = document.getElementById("box");
+  var screen = box.children[0];
+  var ul1 = screen.children[0];
+  var ol1 = screen.children[1];
+  var ul1Lis = ul1.children;
+
+  var imgWidth = screen.offsetWidth;
+
+  var arr = document.getElementById("arr");
+  var arrLeft = document.getElementById("left");
+  var arrRight = document.getElementById("right");
+
+  //2.根据ul1中有多少个li标签，创建ol1中有多少个li标签
+  for(var i = 0 ; i < ul1Lis.length; i++){
+  	var li = document.createElement("li");
+    li.innerHTML = i+1;
+    li.setAttribute("index",i);
+    ol1.appendChild(li);
+  }
+
+  //3.把ol1中的第一个li标签设置颜色
+  var ol1Lis = ol1.children; //拿到ol中所有的li标签
+  ol1Lis[0].setAttribute("class","current");
+
+  //4.给ol1中的每一个li标签设置一个单击事件
+  for(var i = 0 ; i < ol1Lis.length; i++){
+  	ol1Lis[i].onclick = function () {
+      //4.1 颜色排他
+      for(var j = 0 ; j < ol1Lis.length; j++){
+      	ol1Lis[j].removeAttribute("class");
+      }
+      //4.2 给自己设置颜色
+      this.setAttribute("class","current");
+      //4.3 滚动起来
+      var target = -this.getAttribute("index") * imgWidth;
+      animate(ul1,target);
+
+      //10.让三个index同步起来。
+      picIndex = spanIndex = this.getAttribute("index");
+    }
+  }
+
+  //5.给box设置鼠标移入、移出事件---让左右焦点显示、隐藏。
+  box.onmouseover = function () {
+    arr.style.display = "block";
+    //12.2 轮播图自动播放计时器清空
+    clearInterval(timerId);
+  }
+  box.onmouseout = function () {
+    arr.style.display = "none";
+    //12.3 鼠标移出了box，就要让他自动轮播起来，就要重新设置计时器
+    timerId = setInterval(nextImg,3000);
+  }
+
+  //6.1 声明一个变量，用来记录滚出去的图片个数
+  var picIndex = 0;
+
+  //6.2 给ul追加一个li，也就是在最后添加一张图片，而这个图片是和第一个图片是一样的。
+  //这样做的目的是为了，无缝连接。
+  ul1.appendChild(ul1Lis[0].cloneNode(true));
+
+  //8.1 声明一个变量，用来记录滚动的span(ol中的li)的个数。
+  var spanIndex = 0;
+
+  //6.给右边焦点按钮注册单击事件
+  arrRight.onclick = function () {
+    nextImg();
+  }
+
+  //11.把右边焦点按钮单击事件里面的代码封装成一个方法
+  function nextImg(){
+    //如果此时显示的是最后一个图片(实际上就是第一张克隆的)，那么就应该让ul瞬间到0.
+    if(picIndex == ul1.children.length-1){
+      picIndex = 0;
+      //应该让ul瞬间回到第一张
+      ul1.style.left = 0+"px";
+    }
+    picIndex++;
+    var target = -picIndex * imgWidth;
+    animate(ul1,target);
+
+
+    //颜色排他
+    for(var i = 0 ; i < ol1Lis.length; i++){
+      ol1Lis[i].removeAttribute("class");
+    }
+    //如果spanIndex已经到了olLis的最大下标，就应该马上把他设置为0
+    //如果spanIndex没到到olLis的最大下标，就应该让他自增1.
+    if(spanIndex < ol1Lis.length-1){
+      spanIndex++;
+    }else {
+      spanIndex = 0;
+    }
+    ol1Lis[spanIndex].setAttribute("class","current");
+    console.log(spanIndex);
+  }
+
+
+  //7.给左边焦点按钮注册单击事件
+  arrLeft.onclick = function () {
+    if(picIndex == 0){
+      picIndex = ul1.children.length-1;
+      //应该让ul瞬间回到最后一张(第一张克隆的一张)
+      ul1.style.left = -ol1Lis.length * imgWidth +"px";
+    }
+    picIndex--;
+    var target = -picIndex * imgWidth;
+    animate(ul1,target);
+
+    //9.给ol中对应的li标签设置颜色
+    //颜色排他
+    for(var i = 0 ; i < ol1Lis.length; i++){
+      ol1Lis[i].removeAttribute("class");
+    }
+    //如果spanIndex已经到了olLis的最大下标，就应该马上把他设置为0
+    //如果spanIndex没到到olLis的最大下标，就应该让他自增1.
+    if(spanIndex > 0){
+      spanIndex--;
+    }else {
+      spanIndex = ol1Lis.length-1;
+    }
+    ol1Lis[spanIndex].setAttribute("class","current");
+    console.log(spanIndex);
+  }
+
+
+  //12.1 设置计时器id
+  var timerId = null;
+  //12.开启自动轮播
+  timerId = setInterval(nextImg,3000);
+
+
+
+</script>
+</body>
+</html>
